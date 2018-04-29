@@ -2,6 +2,13 @@
 title: "Prediction Challenge"
 output: html_notebook
 ---
+# To Do List #
+- LR Model
+  - Model Assessment
+    - Step wise
+    - Cutoff Selection
+    - Compare Step vs General Model
+  - 
 
 # Objective #
 A supermarket is offering a new line of organic products.The supermarket's management wants to determine which customers are likely to purchase these products.
@@ -179,4 +186,6 @@ The lift chart is basically used in order to see how many cases must be used (cu
 
 *Gain Table*
 The gains table can show you the depth of the file which constitutes for the percentage of data sample being predicted. The cummulative pct of total response shows the percentage of positive (1) entries that will be explained by the percentage of data being sampled. 
+
+
 
