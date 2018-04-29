@@ -149,22 +149,25 @@ valid.df.nn = nn.data[-ti,]
 n = names(train.df.nn)
 f = as.formula(paste("TargetBuy~", paste(n[!n %in% "TargetBuy"], collapse = "+")))
 
-# decide how many layers and nodes to use
 organic.nn1 = neuralnet(f, data = train.df.nn, linear.output = F, hidden = 3,threshold = 0.1)
-# organic.nn2 <- neuralnet(f, data = train.df.nn, linear.output = F, hidden = 5,threshold = 0.1)
-# organic.nn3 <- neuralnet(f, data = train.df.nn, linear.output = F, hidden = c(5,5),threshold = 0.1)
 
-organic.nn.pred1 = compute(organic.nn1,valid.df.nn[,-6] )
-
-accuracy(unlist(organic.nn.pred1),valid.df.nn[,6])
+prediction(organic.nn1)
+plot(organic.nn1)
+organic.nn.pred1 <- compute(organic.nn1,valid.df.nn[,-6] )
+RMSE(ifelse(organic.nn.pred1$net.result >0.6,1,0), valid.df.nn$TargetBuy)
+accuracy(unlist(organic.nn.pred1),valid.df.nn$TargetBuy)
 
 library(caret)
+result=ifelse(organic.nn.pred1$net.result > 0.5,1,0)
+confusionMatrix(table(result, valid.df.nn$TargetBuy))
 
-organic.nn.pred1 = as.numeric(unlist(organic.nn.pred1$net.result))
-confusionMatrix(organic.nn.pred1,valid.df.nn$TargetBuy)
+library(gains)
+gain <- gains(valid.df.nn$TargetBuy, organic.nn.pred1$net.result, groups=10)
+gain
 
-# Neural Network (Less variables)
-org.nn2 <- neuralnet(TargetBuy ~ Salt + Fat, data = cheese.df, linear.output = F, hidden = 3)
+plot(c(0, gain$cume.pct.of.total*sum(valid.df.nn$TargetBuy)) ~ c(0, gain$cume.obs),
+     xlab="# cases", ylab="Cumulative", main="", type="l")
+lines(c(0,sum(valid.df.nn$TargetBuy))~c(0, dim(valid.df.nn)[1]), lty=2)
 ```
 # Classification Tree Model #
 ```{r}
