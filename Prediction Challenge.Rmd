@@ -133,7 +133,6 @@ confusionMatrix(step.pred, valid.df$TargetBuy)
 
 ```
 # Neural Network Model #
-## Model Implementation ##
 ```{r}
 library(neuralnet)
 library(forecast)
@@ -161,11 +160,13 @@ accuracy(unlist(organic.nn.pred1),valid.df.nn[,6])
 
 library(caret)
 
-organic.nn.pred1
-confusionMatrix(unlist(organic.nn.pred1),valid.df.nn[,6])
+organic.nn.pred1 = as.numeric(unlist(organic.nn.pred1$net.result))
+confusionMatrix(organic.nn.pred1,valid.df.nn$TargetBuy)
+
+# Neural Network (Less variables)
+org.nn2 <- neuralnet(TargetBuy ~ Salt + Fat, data = cheese.df, linear.output = F, hidden = 3)
 ```
 # Classification Tree Model #
-## Model Creation ##
 ```{r}
 library(caret)
 library(rpart)
