@@ -133,7 +133,7 @@ confusionMatrix(step.pred, valid.df$TargetBuy)
 
 ```
 # Neural Network Model #
-## Extra: Data Normalization ##
+## Model Implementation ##
 ```{r}
 library(neuralnet)
 library(forecast)
@@ -146,54 +146,143 @@ str(nn.data)
 train.df.nn = nn.data[ti,]
 valid.df.nn = nn.data[-ti,]
 
-n <- names(train.df.nn)
-f <- as.formula(paste("TargetBuy~", paste(n[!n %in% "TargetBuy"], collapse = "+")))
+# Getting the formula
+n = names(train.df.nn)
+f = as.formula(paste("TargetBuy~", paste(n[!n %in% "TargetBuy"], collapse = "+")))
 
 # decide how many layers and nodes to use
-organic.nn1 <- neuralnet(f, data = train.df.nn, linear.output = F, hidden = 3,threshold = 0.1)
+organic.nn1 = neuralnet(f, data = train.df.nn, linear.output = F, hidden = 3,threshold = 0.1)
 # organic.nn2 <- neuralnet(f, data = train.df.nn, linear.output = F, hidden = 5,threshold = 0.1)
 # organic.nn3 <- neuralnet(f, data = train.df.nn, linear.output = F, hidden = c(5,5),threshold = 0.1)
 
-organic.nn.pred1 <- compute(organic.nn1,valid.df.nn[,-6] )
+organic.nn.pred1 = compute(organic.nn1,valid.df.nn[,-6] )
 
 accuracy(unlist(organic.nn.pred1),valid.df.nn[,6])
 
 library(caret)
-confusionMatrix(organic.nn.pred1, valid.df.nn$TargetBuy)
+
+organic.nn.pred1
+confusionMatrix(unlist(organic.nn.pred1),valid.df.nn[,6])
 ```
-
-## Extra: Data Normalization ##
-*Use Stepwise first on LogReg and then use those variables to create the neural network*
-*Exhaustive Search*
-```{r}
-
-```
-
 # Classification Tree Model #
 ## Model Creation ##
 ```{r}
-# install.packages(c("rpart", "rpart.plot"))
+library(caret)
 library(rpart)
 library(rpart.plot)
 
 default.ct = rpart(TargetBuy~., data = train.df, method = "class")
 prp(default.ct, type = 1, extra = 1, under = TRUE, 
-    split.font = 1, varlen = -10, 
-    box.col = ifelse(default.ct$frame$var =="<leaf>",     'gray','white'))
+    split.font = 3, varlen = -10, 
+    box.col = ifelse(default.ct$frame$var == "<leaf>", 'gray','white'))
 
 default.pred = predict(default.ct, valid.df, type="class")
 
-## Generate confusion matrices for training and validation
-library(caret)
-confusionMatrix(default.pred, valid.df$TargetBuy)
+
+def.cm = confusionMatrix(default.pred, valid.df$TargetBuy, dnn=c("Prediction","Actual"))
+
+# Pruning Trees
+cv.ct = rpart(TargetBuy~., data = train.df, method = "class",
+              cp = 0.00001)
+
+printcp(cv.ct)
+
+min.xerror = cv.ct$cptable[which.min(cv.ct$cptable[,"xerror"]), "CP"]
+
+pruned.ct = prune(cv.ct, cp = min.xerror)
+prp(pruned.ct, type = 1, extra = 1, split.font = 1, varlen = -10)
+
+pruned.pred = predict(pruned.ct, valid.df, type="class")
+pruned.pred
+
+pruned.cm = confusionMatrix(pruned.pred, valid.df$TargetBuy)
+
+rbind(Default = def.cm$overall[1], Pruned = pruned.cm$overall[1])
+
+# Improved? Model using Less Variables
+step.ct = rpart(TargetBuy ~ DemAffl+DemAge+isMale+isFemale+isMidland+isSouthEast+isNEast+isSWest, 
+                data = train.df, method = "class", cp = 0.00001)
+
+prp(step.ct, type = 1, extra = 1, under = TRUE, 
+    split.font = 3, varlen = -10, 
+    box.col = ifelse(default.ct$frame$var == "<leaf>", 'gray','white'))
+
+step.ct.pred = predict(step.ct, valid.df, type="class")
+step.ct.cm = confusionMatrix(step.ct.pred, valid.df$TargetBuy, dnn=c("Prediction","Actual"))
+
+# Pruning Tree
+min.xerror.p = step.ct$cptable[which.min(step.ct$cptable[,"xerror"]), "CP"]
+
+step.pruned.ct = prune(step.ct, cp = min.xerror.p)
+prp(step.pruned.ct, type = 1, extra = 1, split.font = 1, varlen = -10)
+
+step.pruned.pred = predict(step.pruned.ct, valid.df, type="class")
+step.pruned.pred
+
+step.pruned.cm = confusionMatrix(step.pruned.pred, valid.df$TargetBuy)
+
+
+rbind(Default_CT = step.ct.cm$overall[1], Pruned_CT = step.pruned.cm$overall[1],
+      Step_Default_CT = def.cm$overall[1], Pruned_Step_CT = pruned.cm$overall[1])
+
+# THE ONE WE WILL PICK GIVEN THIS IS: PRUNED_STEP_CT with acc = 0.82531
+```
+# Model Implementation #
+## New Data Pre-Processing ##
+```{r}
+## New Data Pre-Processing ####
+test.df = read.csv("scoreorganics.csv")
+
+test.df = test.df[complete.cases(test.df),]
+levels(test.df$DemClusterGroup)
+options(scipen=999)
+
+# Cluster Dummies 
+test.df$isClusterA = ifelse(test.df$DemClusterGroup == 'A', 1, 0)
+test.df$isClusterB = ifelse(test.df$DemClusterGroup == 'B', 1, 0)
+test.df$isClusterC = ifelse(test.df$DemClusterGroup == 'C', 1, 0)
+test.df$isClusterD = ifelse(test.df$DemClusterGroup == 'D', 1, 0)
+test.df$isClusterE = ifelse(test.df$DemClusterGroup == 'E', 1, 0)
+test.df$isClusterF = ifelse(test.df$DemClusterGroup == 'F', 1, 0)
+
+# Gender Dummies 
+test.df$isMale= ifelse(test.df$DemGender == 'M', 1, 0)
+test.df$isFemale = ifelse(test.df$DemGender == 'F', 1, 0)
+
+# Region Dummies
+test.df$isMidland = ifelse(test.df$DemReg == 'Midlands', 1, 0)
+test.df$isNorth = ifelse(test.df$DemReg == 'North', 1, 0)
+test.df$isScottish = ifelse(test.df$DemReg == 'Scottish', 1, 0)
+test.df$isSouthEast = ifelse(test.df$DemReg == 'South East', 1, 0)
+
+# TV Region Dummmies
+test.df$isBorder = ifelse(test.df$DemTVReg == 'Border', 1, 0)
+test.df$isCScotland = ifelse(test.df$DemTVReg == 'C Scotland', 1, 0)
+test.df$isEast = ifelse(test.df$DemTVReg == 'East', 1, 0)
+test.df$isLondon = ifelse(test.df$DemTVReg == 'London', 1, 0)
+test.df$isMidlands = ifelse(test.df$DemTVReg == 'Midlands', 1, 0)
+test.df$isNEast = ifelse(test.df$DemTVReg == 'N East', 1, 0)
+test.df$isNScot = ifelse(test.df$DemTVReg == 'N Scot', 1, 0)
+test.df$isNWest = ifelse(test.df$DemTVReg == 'N West', 1, 0)
+test.df$isSSEast = ifelse(test.df$DemTVReg == 'S & S East', 1, 0)
+test.df$isSWest= ifelse(test.df$DemTVReg == 'S West', 1, 0)
+test.df$isUlster = ifelse(test.df$DemTVReg == 'Ulster', 1, 0)
+test.df$isWalesWest = ifelse(test.df$DemTVReg == 'Wales & West', 1, 0)
+
+# Promotion Class Dummies
+test.df$isGold = ifelse(test.df$PromClass == 'Gold', 1, 0)
+test.df$isPlatinum = ifelse(test.df$PromClass == 'Platinum', 1, 0)
+test.df$isSilver = ifelse(test.df$PromClass == 'Silver', 1, 0)
+
+test.df = test.df[,-c(1,5,6,7,8,9)]
+```
+
+## Implementation of Best Model ##
+```{r}
+
 ```
 
 # Conclusion #
-
-
-*Run* = *Cmd+Shift+Enter*
-*Insert Chunk* = *Cmd+Option+I*
-*Preview* = *Cmd+Shift+K*
 
 *CLASS NOTES*
 *LIFT CHARTS*
