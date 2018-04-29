@@ -138,6 +138,21 @@ str(nn.data)
 
 train.df.nn = nn.data[ti,]
 valid.df.nn = nn.data[-ti,]
+
+n <- names(train.df.nn)
+f <- as.formula(paste("TargetBuy~", paste(n[!n %in% "TargetBuy"], collapse = "+")))
+
+# decide how many layers and nodes to use
+organic.nn1 <- neuralnet(f, data = train.df.nn, linear.output = F, hidden = 3,threshold = 0.1)
+# organic.nn2 <- neuralnet(f, data = train.df.nn, linear.output = F, hidden = 5,threshold = 0.1)
+# organic.nn3 <- neuralnet(f, data = train.df.nn, linear.output = F, hidden = c(5,5),threshold = 0.1)
+
+organic.nn.pred1 <- compute(organic.nn1,valid.df.nn[,-6] )
+
+accuracy(unlist(organic.nn.pred1),valid.df.nn[,6])
+
+library(caret)
+confusionMatrix(organic.nn.pred1, valid.df.nn$TargetBuy)
 ```
 
 ## Extra: Data Normalization ##
