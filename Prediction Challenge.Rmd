@@ -142,27 +142,37 @@ library(forecast)
 nor = preProcess(cdata, method="range")
 nn.data = predict(nor, cdata) 
 str(nn.data)
+selected.var= c(1,2,6,13,14,15,18,24,28)
+
+train.df.nn.s = nn.data[ti,selected.var]
+valid.df.nn.s = nn.data[-ti,selected.var]
 
 train.df.nn = nn.data[ti,]
 valid.df.nn = nn.data[-ti,]
 
 # Getting the formula
 n = names(train.df.nn)
+ns= names(train.df.nn.s)
 f = as.formula(paste("TargetBuy~", paste(n[!n %in% "TargetBuy"], collapse = "+")))
-
+fs = as.formula(paste("TargetBuy~", paste(ns[!ns %in% "TargetBuy"], collapse = "+")))
 organic.nn1 = neuralnet(f, data = train.df.nn, linear.output = F, hidden = 3,threshold = 0.1)
-<<<<<<< HEAD
-# organic.nn2 <- neuralnet(f, data = train.df.nn, linear.output = F, hidden = 5,threshold = 0.1)
+
+ organic.nn2 <- neuralnet(fs, data = train.df.nn.s, linear.output = F, hidden = 3,threshold = 0.1)
 # organic.nn3 <- neuralnet(f, data = train.df.nn, linear.output = F, hidden = c(5,5),threshold = 0.1)
 prediction(organic.nn1)
 plot(organic.nn1)
 organic.nn.pred1 <- compute(organic.nn1,valid.df.nn[,-6] )
+organic.nn.pred2 <- compute(organic.nn2,valid.df.nn.s[,-3])
+
 RMSE(ifelse(organic.nn.pred1$net.result >0.6,1,0), valid.df.nn$TargetBuy)
 accuracy(unlist(organic.nn.pred1),valid.df.nn$TargetBuy)
 
 library(caret)
 result=ifelse(organic.nn.pred1$net.result >0.5,1,0)
 confusionMatrix(table(result, valid.df.nn$TargetBuy))
+
+result2=ifelse(organic.nn.pred2$net.result >0.5,1,0)
+confusionMatrix(table(result2, valid.df.nn.s$TargetBuy))
 
 library(gains)
 gain <- gains(valid.df.nn$TargetBuy, organic.nn.pred1$net.result, groups=10)
