@@ -169,6 +169,23 @@ plot(c(0, gain$cume.pct.of.total*sum(valid.df.nn$TargetBuy)) ~ c(0, gain$cume.ob
      xlab="# cases", ylab="Cumulative", main="", type="l")
 lines(c(0,sum(valid.df.nn$TargetBuy))~c(0, dim(valid.df.nn)[1]), lty=2)
 ```
+
+```{r}
+# Choose Cutoff #
+accT = c()
+for(cutoff in seq(0, 1, 0.01)){
+    cm = confusionMatrix(ifelse(organic.nn.pred1$net.result > cutoff, 1, 0), valid.df.nn$TargetBuy)
+    accT = c(accT, cm$overall[1])
+}
+
+max(accT)
+plot(accT ~ seq(0, 1, 0.01), xlab = "Cutoff Value", ylab = "", type = "l", ylim = c(0,1))
+lines(1-accT ~ seq(0,1,0.01), type = "l", lty = 2)
+legend("bottomright", c("accuracy", "overall error"), lty = c(1,2), merge = F)
+```
+
+The Highest accuracy the model can achieve will be 0.825046 which is lower then the Pruned Reduced CT of 0.82531
+
 # Classification Tree Model #
 ```{r}
 library(caret)
