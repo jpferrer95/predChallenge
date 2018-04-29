@@ -133,7 +133,6 @@ confusionMatrix(step.pred, valid.df$TargetBuy)
 
 ```
 # Neural Network Model #
-## Model Implementation ##
 ```{r}
 # install.packages("caret",dependencies = TRUE)
 library(neuralnet)
@@ -151,8 +150,8 @@ valid.df.nn = nn.data[-ti,]
 n = names(train.df.nn)
 f = as.formula(paste("TargetBuy~", paste(n[!n %in% "TargetBuy"], collapse = "+")))
 
-# decide how many layers and nodes to use
 organic.nn1 = neuralnet(f, data = train.df.nn, linear.output = F, hidden = 3,threshold = 0.1)
+<<<<<<< HEAD
 # organic.nn2 <- neuralnet(f, data = train.df.nn, linear.output = F, hidden = 5,threshold = 0.1)
 # organic.nn3 <- neuralnet(f, data = train.df.nn, linear.output = F, hidden = c(5,5),threshold = 0.1)
 prediction(organic.nn1)
@@ -182,19 +181,32 @@ lines(c(0,sum(valid.df.nn$TargetBuy))~c(0, dim(valid.df.nn)[1]), lty=2)
 *Exhaustive Search*
 ```{r}
 =======
+=======
+>>>>>>> 7d1afc28d94c470b4b36b263a9c06f9eb7c6e58a
 
-organic.nn.pred1 = compute(organic.nn1,valid.df.nn[,-6] )
-
-accuracy(unlist(organic.nn.pred1),valid.df.nn[,6])
+prediction(organic.nn1)
+plot(organic.nn1)
+organic.nn.pred1 <- compute(organic.nn1,valid.df.nn[,-6] )
+RMSE(ifelse(organic.nn.pred1$net.result >0.6,1,0), valid.df.nn$TargetBuy)
+accuracy(unlist(organic.nn.pred1),valid.df.nn$TargetBuy)
 
 library(caret)
+<<<<<<< HEAD
 >>>>>>> 4b1f563c50010fd6c932f73f19a501631a1480c7
+=======
+result=ifelse(organic.nn.pred1$net.result > 0.5,1,0)
+confusionMatrix(table(result, valid.df.nn$TargetBuy))
 
-organic.nn.pred1
-confusionMatrix(unlist(organic.nn.pred1),valid.df.nn[,6])
+library(gains)
+gain <- gains(valid.df.nn$TargetBuy, organic.nn.pred1$net.result, groups=10)
+gain
+>>>>>>> 7d1afc28d94c470b4b36b263a9c06f9eb7c6e58a
+
+plot(c(0, gain$cume.pct.of.total*sum(valid.df.nn$TargetBuy)) ~ c(0, gain$cume.obs),
+     xlab="# cases", ylab="Cumulative", main="", type="l")
+lines(c(0,sum(valid.df.nn$TargetBuy))~c(0, dim(valid.df.nn)[1]), lty=2)
 ```
 # Classification Tree Model #
-## Model Creation ##
 ```{r}
 library(caret)
 library(rpart)
