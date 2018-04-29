@@ -21,8 +21,8 @@ The ORGANICS data set contains 13 variables and over 22,000 observations. The va
 ## Data Extraction ##
 ```{r}
 rm(list=ls())
-setwd("/Users/banj/Downloads")
-rdata = read.csv("/Users/banj/Downloads/organics.csv")
+setwd("/Users/jpferrer95/Google Drive/Offline/Spring 2018/BIS 348/Data")
+rdata = read.csv("organics.csv")
 rdata = rdata[complete.cases(rdata),]
 ```
 
@@ -120,7 +120,7 @@ legend("bottomright", c("accuracy", "overall error"), lty = c(1,2), merge = F)
 *Reduce number of Predictors*
 ```{r}
 # Reduced amount of variables taken into account
-# step.logReg = step(logReg, direction = 'both')
+step.logReg = step(logReg, direction = 'both')
 step.logReg.pred = predict(step.logReg, newdata = valid.df, type = 'response')
 
 step.pred = ifelse(step.logReg.pred > 0.5, 1, 0)
@@ -137,95 +137,67 @@ confusionMatrix(step.pred, valid.df$TargetBuy)
 # install.packages("caret",dependencies = TRUE)
 library(neuralnet)
 library(forecast)
+library(caret)
 
 # Normalize the data
 nor = preProcess(cdata, method="range")
 nn.data = predict(nor, cdata) 
 str(nn.data)
-selected.var= c(1,2,6,13,14,15,18,24,28)
-
-train.df.nn.s = nn.data[ti,selected.var]
-valid.df.nn.s = nn.data[-ti,selected.var]
 
 train.df.nn = nn.data[ti,]
 valid.df.nn = nn.data[-ti,]
 
 # Getting the formula
 n = names(train.df.nn)
-ns= names(train.df.nn.s)
 f = as.formula(paste("TargetBuy~", paste(n[!n %in% "TargetBuy"], collapse = "+")))
-fs = as.formula(paste("TargetBuy~", paste(ns[!ns %in% "TargetBuy"], collapse = "+")))
-organic.nn1 = neuralnet(f, data = train.df.nn, linear.output = F, hidden = 3,threshold = 0.1)
 
- organic.nn2 <- neuralnet(fs, data = train.df.nn.s, linear.output = F, hidden = 3,threshold = 0.1)
-# organic.nn3 <- neuralnet(f, data = train.df.nn, linear.output = F, hidden = c(5,5),threshold = 0.1)
-prediction(organic.nn1)
-plot(organic.nn1)
-organic.nn.pred1 <- compute(organic.nn1,valid.df.nn[,-6] )
-organic.nn.pred2 <- compute(organic.nn2,valid.df.nn.s[,-3])
+nn.model = neuralnet(f, data = train.df.nn, linear.output = F, 
+                     hidden = 4,threshold = 0.1)
 
-RMSE(ifelse(organic.nn.pred1$net.result >0.6,1,0), valid.df.nn$TargetBuy)
-accuracy(unlist(organic.nn.pred1),valid.df.nn$TargetBuy)
+plot(nn.model)
 
-library(caret)
-result=ifelse(organic.nn.pred1$net.result >0.5,1,0)
+nn.model.pred = compute(nn.model,valid.df.nn[,-6] )
+
+RMSE(ifelse(nn.model.pred$net.result > 0.5, 1, 0), valid.df.nn$TargetBuy)
+accuracy(unlist(nn.model.pred),valid.df.nn$TargetBuy)
+
+result = ifelse(organic.nn.pred1$net.result > 0.5 ,1,0)
 confusionMatrix(table(result, valid.df.nn$TargetBuy))
-
-result2=ifelse(organic.nn.pred2$net.result >0.5,1,0)
-confusionMatrix(table(result2, valid.df.nn.s$TargetBuy))
 
 library(gains)
 gain <- gains(valid.df.nn$TargetBuy, organic.nn.pred1$net.result, groups=10)
 gain
 
-data.frame("depth" =  gain["depth"], "obs" = gain["obs"], "cume.obs" = gain["cume.obs"], 
-           "mean.resp" = gain["mean.resp"], "cume.mean.resp" = gain["cume.mean.resp"], "cume.pct.of.total" = gain["cume.pct.of.total"], 
-           "lift" = gain["lift"], "cume.lift" = gain["cume.lift"], "mean.prediction" = gain["mean.prediction"])
 plot(c(0, gain$cume.pct.of.total*sum(valid.df.nn$TargetBuy)) ~ c(0, gain$cume.obs),
      xlab="# cases", ylab="Cumulative", main="", type="l")
 lines(c(0,sum(valid.df.nn$TargetBuy))~c(0, dim(valid.df.nn)[1]), lty=2)
 ```
 
-## Extra: Data Normalization ##
-*Use Stepwise first on LogReg and then use those variables to create the neural network*
-*Exhaustive Search*
 ```{r}
-=======
-=======
->>>>>>> 7d1afc28d94c470b4b36b263a9c06f9eb7c6e58a
+# Reduced amount of variables
+selected.var = c(1,2,6,13,14,15,18,24,28)
+set.seed(123)
+sel.train.df.n = nn.data[ti,selected.var]
+sel.valid.df.n = nn.data[-ti,selected.var]
 
-prediction(organic.nn1)
-plot(organic.nn1)
-organic.nn.pred1 <- compute(organic.nn1,valid.df.nn[,-6] )
-RMSE(ifelse(organic.nn.pred1$net.result >0.6,1,0), valid.df.nn$TargetBuy)
-accuracy(unlist(organic.nn.pred1),valid.df.nn$TargetBuy)
+nn.red.model = neuralnet(TargetBuy ~ DemAffl+DemAge+isMale+isFemale+isMidland+isSouthEast+isNEast+isSWest, data = sel.train.df.n, linear.output = F, hidden = 3,threshold = 0.1)
 
-library(caret)
-<<<<<<< HEAD
->>>>>>> 4b1f563c50010fd6c932f73f19a501631a1480c7
-=======
-result=ifelse(organic.nn.pred1$net.result > 0.5,1,0)
-confusionMatrix(table(result, valid.df.nn$TargetBuy))
+nn.red.pred = compute(nn.red.model, sel.valid.df.n[,-3])
 
-library(gains)
-gain <- gains(valid.df.nn$TargetBuy, organic.nn.pred1$net.result, groups=10)
-gain
->>>>>>> 7d1afc28d94c470b4b36b263a9c06f9eb7c6e58a
-
-plot(c(0, gain$cume.pct.of.total*sum(valid.df.nn$TargetBuy)) ~ c(0, gain$cume.obs),
-     xlab="# cases", ylab="Cumulative", main="", type="l")
-lines(c(0,sum(valid.df.nn$TargetBuy))~c(0, dim(valid.df.nn)[1]), lty=2)
+result2 = ifelse(nn.red.pred$net.result > 0.5, 1, 0)
+confusionMatrix(table(result2, sel.valid.df.n$TargetBuy))
 ```
 
 ```{r}
 # Choose Cutoff #
 accT = c()
 for(cutoff in seq(0, 1, 0.01)){
-    cm = confusionMatrix(ifelse(organic.nn.pred1$net.result > cutoff, 1, 0), valid.df.nn$TargetBuy)
+    cm = confusionMatrix(ifelse(nn.red.pred$net.result > cutoff, 1, 0), sel.valid.df.n$TargetBuy)
     accT = c(accT, cm$overall[1])
 }
 
 max(accT)
+
 plot(accT ~ seq(0, 1, 0.01), xlab = "Cutoff Value", ylab = "", type = "l", ylim = c(0,1))
 lines(1-accT ~ seq(0,1,0.01), type = "l", lty = 2)
 legend("bottomright", c("accuracy", "overall error"), lty = c(1,2), merge = F)
@@ -288,7 +260,7 @@ step.pruned.pred = predict(step.pruned.ct, valid.df, type="class")
 step.pruned.pred
 
 step.pruned.cm = confusionMatrix(step.pruned.pred, valid.df$TargetBuy)
-
+step.pruned.cm
 
 rbind(Default_CT = step.ct.cm$overall[1], Pruned_CT = step.pruned.cm$overall[1],
       Step_Default_CT = def.cm$overall[1], Pruned_Step_CT = pruned.cm$overall[1])
@@ -347,7 +319,7 @@ test.df = test.df[,-c(1,5,6,7,8,9)]
 
 ## Implementation of Best Model ##
 ```{r}
-
+step.pruned.cm
 ```
 
 # Conclusion #
