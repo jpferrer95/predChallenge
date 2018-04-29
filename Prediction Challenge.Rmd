@@ -14,8 +14,8 @@ The ORGANICS data set contains 13 variables and over 22,000 observations. The va
 ## Data Extraction ##
 ```{r}
 rm(list=ls())
-setwd("/Users/jpferrer95/Google Drive/Offline/Spring 2018/BIS 348/Data")
-rdata = read.csv("organics.csv")
+setwd("/Users/banj/Downloads")
+rdata = read.csv("/Users/banj/Downloads/organics.csv")
 rdata = rdata[complete.cases(rdata),]
 ```
 
@@ -80,8 +80,8 @@ valid.df = cdata[-ti,]
 # Logistic Regression Model #
 ## Setting Up Model ##
 ```{r}
-# install.packages("forecast")
-# install.packages("caret")
+install.packages("forecast")
+install.packages("caret")
 library(forecast)
 library(caret)
 
@@ -128,6 +128,7 @@ confusionMatrix(step.pred, valid.df$TargetBuy)
 # Neural Network Model #
 ## Extra: Data Normalization ##
 ```{r}
+# install.packages("caret",dependencies = TRUE)
 library(neuralnet)
 library(forecast)
 
@@ -146,13 +147,27 @@ f <- as.formula(paste("TargetBuy~", paste(n[!n %in% "TargetBuy"], collapse = "+"
 organic.nn1 <- neuralnet(f, data = train.df.nn, linear.output = F, hidden = 3,threshold = 0.1)
 # organic.nn2 <- neuralnet(f, data = train.df.nn, linear.output = F, hidden = 5,threshold = 0.1)
 # organic.nn3 <- neuralnet(f, data = train.df.nn, linear.output = F, hidden = c(5,5),threshold = 0.1)
-
+prediction(organic.nn1)
+plot(organic.nn1)
 organic.nn.pred1 <- compute(organic.nn1,valid.df.nn[,-6] )
-
-accuracy(unlist(organic.nn.pred1),valid.df.nn[,6])
+RMSE(ifelse(organic.nn.pred1$net.result >0.6,1,0), valid.df.nn$TargetBuy)
+accuracy(unlist(organic.nn.pred1),valid.df.nn$TargetBuy)
 
 library(caret)
-confusionMatrix(organic.nn.pred1, valid.df.nn$TargetBuy)
+result=ifelse(organic.nn.pred1$net.result >0.6,1,0)
+confusionMatrix(result, valid.df.nn$TargetBuy)
+
+install.packages("gains")
+library(gains)
+gain <- gains(valid.df.nn$TargetBuy, organic.nn.pred1$net.result, groups=10)
+gain
+
+data.frame("depth" =  gain["depth"], "obs" = gain["obs"], "cume.obs" = gain["cume.obs"], 
+           "mean.resp" = gain["mean.resp"], "cume.mean.resp" = gain["cume.mean.resp"], "cume.pct.of.total" = gain["cume.pct.of.total"], 
+           "lift" = gain["lift"], "cume.lift" = gain["cume.lift"], "mean.prediction" = gain["mean.prediction"])
+plot(c(0, gain$cume.pct.of.total*sum(valid.df.nn$TargetBuy)) ~ c(0, gain$cume.obs),
+     xlab="# cases", ylab="Cumulative", main="", type="l")
+lines(c(0,sum(valid.df.nn$TargetBuy))~c(0, dim(valid.df.nn)[1]), lty=2)
 ```
 
 ## Extra: Data Normalization ##
