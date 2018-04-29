@@ -154,10 +154,9 @@ RMSE(ifelse(organic.nn.pred1$net.result >0.6,1,0), valid.df.nn$TargetBuy)
 accuracy(unlist(organic.nn.pred1),valid.df.nn$TargetBuy)
 
 library(caret)
-result=ifelse(organic.nn.pred1$net.result >0.6,1,0)
-confusionMatrix(result, valid.df.nn$TargetBuy)
+result=ifelse(organic.nn.pred1$net.result >0.5,1,0)
+confusionMatrix(table(result, valid.df.nn$TargetBuy))
 
-install.packages("gains")
 library(gains)
 gain <- gains(valid.df.nn$TargetBuy, organic.nn.pred1$net.result, groups=10)
 gain
