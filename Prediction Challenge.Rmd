@@ -131,6 +131,97 @@ step.pred.df = data.frame(Actual = valid.df$TargetBuy, Prediction = step.pred,
 #pred.df[order(-logReg.pred),]
 confusionMatrix(step.pred, valid.df$TargetBuy)
 
+accuracy(step.logReg.pred,valid.df$TargetBuy)
+accuracy(logReg.pred,valid.df$TargetBuy)
+summary(step.logReg.pred)
+summary(logReg.pred)
+
+# lift chart 
+library(gains)
+gain.full <- gains(valid.df$TargetBuy,step.logReg.pred, groups=10)
+gain.full
+data.frame("depth" =  gain.full["depth"], "obs" = gain.full["obs"], "cume.obs" = gain.full["cume.obs"], 
+           "mean.resp" = gain.full["mean.resp"], "cume.mean.resp" = gain.full["cume.mean.resp"], "cume.pct.of.total" = gain.full["cume.pct.of.total"], 
+           "lift" = gain.full["lift"], "cume.lift" = gain.full["cume.lift"], "mean.prediction" = gain.full["mean.prediction"])
+gain.full.origin <- gains(valid.df$TargetBuy,logReg.pred, groups=10)
+
+# plot lift chart
+plot(c(0, gain.full$cume.pct.of.total*sum(valid.df$TargetBuy))~c(0,gain.full$cume.obs),
+     xlab="# cases", ylab="Cumulative", main="", type="l")
+lines(c(0,sum(valid.df$TargetBuy))~c(0, dim(valid.df)[1]), lty=2)
+lines(c(0, gain.full.origin$cume.pct.of.total*sum(valid.df$TargetBuy))~c(0,gain.full$cume.obs),col = "red")
+
+#compute deciles and plot decile-wise chart
+heights <- gain.full$mean.resp/mean(valid.df$TargetBuy)
+midpoints <- barplot(heights, names.arg = gain.full$depth, ylim = c(0,3), 
+                     xlab = "Percentile", ylab = "Mean Response", main = "Decile-wise lift chart")
+
+# ROC curve
+library(pROC)
+r <- roc(valid.df$TargetBuy, step.logReg.pred)
+plot.roc(r)
+#compute area under the curve
+auc(r)
+
+# ROC curve - Original Model
+library(pROC)
+r2 <- roc(valid.df$TargetBuy, logReg.pred)
+plot.roc(r2)
+#compute area under the curve
+auc(r2)
+
+#pred.df[order(-logReg.pred),]
+confusionMatrix(step.pred, valid.df$TargetBuy)
+
+rdata2 <- read.csv("C:\\Users\\jwkim\\Desktop\\Spring 2017\\BIS 448\\scoreorganics.csv", header = TRUE)
+
+# Cluster Dummies 
+rdata2$isClusterA = ifelse(rdata2$DemClusterGroup == 'A', 1, 0)
+rdata2$isClusterB = ifelse(rdata2$DemClusterGroup == 'B', 1, 0)
+rdata2$isClusterC = ifelse(rdata2$DemClusterGroup == 'C', 1, 0)
+rdata2$isClusterD = ifelse(rdata2$DemClusterGroup == 'D', 1, 0)
+rdata2$isClusterE = ifelse(rdata2$DemClusterGroup == 'E', 1, 0)
+rdata2$isClusterF = ifelse(rdata2$DemClusterGroup == 'F', 1, 0)
+
+# Gender Dummies 
+rdata2$isMale= ifelse(rdata2$DemGender == 'M', 1, 0)
+rdata2$isFemale = ifelse(rdata2$DemGender == 'F', 1, 0)
+
+# Region Dummies
+rdata2$isMidland = ifelse(rdata2$DemReg == 'Midlands', 1, 0)
+rdata2$isNorth = ifelse(rdata2$DemReg == 'North', 1, 0)
+rdata2$isScottish = ifelse(rdata2$DemReg == 'Scottish', 1, 0)
+rdata2$isSouthEast = ifelse(rdata2$DemReg == 'South East', 1, 0)
+
+# TV Region Dummmies
+rdata2$isBorder = ifelse(rdata2$DemTVReg == 'Border', 1, 0)
+rdata2$isCScotland = ifelse(rdata2$DemTVReg == 'C Scotland', 1, 0)
+rdata2$isEast = ifelse(rdata2$DemTVReg == 'East', 1, 0)
+rdata2$isLondon = ifelse(rdata2$DemTVReg == 'London', 1, 0)
+rdata2$isMidlands = ifelse(rdata2$DemTVReg == 'Midlands', 1, 0)
+rdata2$isNEast = ifelse(rdata2$DemTVReg == 'N East', 1, 0)
+rdata2$isNScot = ifelse(rdata2$DemTVReg == 'N Scot', 1, 0)
+rdata2$isNWest = ifelse(rdata2$DemTVReg == 'N West', 1, 0)
+rdata2$isSSEast = ifelse(rdata2$DemTVReg == 'S & S East', 1, 0)
+rdata2$isSWest= ifelse(rdata2$DemTVReg == 'S West', 1, 0)
+rdata2$isUlster = ifelse(rdata2$DemTVReg == 'Ulster', 1, 0)
+rdata2$isWalesWest = ifelse(rdata2$DemTVReg == 'Wales & West', 1, 0)
+
+# Promotion Class Dummies
+rdata2$isGold = ifelse(rdata2$PromClass == 'Gold', 1, 0)
+rdata2$isPlatinum = ifelse(rdata2$PromClass == 'Platinum', 1, 0)
+rdata2$isSilver = ifelse(rdata2$PromClass == 'Silver', 1, 0)
+View(rdata2)
+
+## Got an error..trying to figure out
+logit.reg.score <- predict(step.logReg.pred, rdata2, type="response")
+logit.reg.score
+
+Classification <- data.frame("Probability" = logit.reg.score, 
+                             "Classifcation" = ifelse(logit.reg.score>0.5, 1, 0))
+
+
+
 ```
 # Neural Network Model #
 ```{r}
